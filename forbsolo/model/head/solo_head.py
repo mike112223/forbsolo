@@ -1,0 +1,132 @@
+import numpy as np
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+from ..registry import HEADS
+from ..utils import (ConvModule, bias_init_with_prob, normal_init, multi_apply)
+
+
+@HEADS.register_module
+class SOLOHead(nn.Module):
+    """
+    An anchor-based head used in [1]_.
+
+    The head contains two subnetworks. The first classifies anchor boxes and
+    the second regresses deltas for the anchors.
+
+    References:
+        .. [1]  https://arxiv.org/pdf/1708.02002.pdf
+
+    Example:
+        >>> import torch
+        >>> self = RetinaHead(11, 7)
+        >>> x = torch.rand(1, 7, 32, 32)
+        >>> cls_score, bbox_pred = self.forward_single(x)
+        >>> # Each anchor predicts a score for each class except background
+        >>> cls_per_anchor = cls_score.shape[1] / self.num_anchors
+        >>> box_per_anchor = bbox_pred.shape[1] / self.num_anchors
+        >>> assert cls_per_anchor == (self.num_classes - 1)
+        >>> assert box_per_anchor == 4
+    """
+
+    def __init__(self,
+                 num_classes,
+                 num_inputs,
+                 in_channels,
+                 feat_channels=256,
+                 grid_number=[40, 36, 24, 16, 12],
+                 scale=[[0, 96], [48, 192], [96, 384], [192, 768], [384, -1]],
+                 stacked_convs=7,
+                 inner_thres=0.2,
+                 conv_cfg=None,
+                 norm_cfg=None,
+                 **kwargs):
+        super(SOLOHead, self).__init__()
+
+        self.num_classes = num_classes
+        self.num_inputs = num_inputs
+        self.in_channels = in_channels
+        self.feat_channels = feat_channels
+        self.grid_number = grid_number
+        self.scale = scale
+        self.stacked_convs = stacked_convs
+        self.inner_thres = inner_thres
+        self.conv_cfg = conv_cfg
+        self.norm_cfg = norm_cfg
+
+        self._init_layers()
+
+    def _init_layers(self):
+        self.relu = nn.ReLU(inplace=True)
+        self.mask_convs = nn.ModuleList()
+        self.cate_convs = nn.ModuleList()
+        self.solo_masks = nn.ModuleList()
+        for i in range(self.stacked_convs):
+            chn = self.in_channels if i == 0 else self.feat_channels
+            self.mask_convs.append(
+                ConvModule(
+                    chn,
+                    self.feat_channels,
+                    3,
+                    stride=1,
+                    padding=1,
+                    conv_cfg=self.conv_cfg,
+                    norm_cfg=self.norm_cfg))
+            self.cate_convs.append(
+                ConvModule(
+                    chn,
+                    self.feat_channels,
+                    3,
+                    stride=1,
+                    padding=1,
+                    conv_cfg=self.conv_cfg,
+                    norm_cfg=self.norm_cfg))
+
+        for i in range(self.num_inputs):
+            self.solo_masks.append(
+                nn.Conv2d(self.feat_channels, self.grid_number[i], 1)
+            )
+
+        self.solo_cate = nn.Conv2d(
+            self.feat_channels, self.num_classes, 1)
+
+    def init_weights(self):
+        for m in self.cate_convs:
+            normal_init(m.conv, std=0.01)
+        for m in self.mask_convs:
+            normal_init(m.conv, std=0.01)
+        bias_cls = bias_init_with_prob(0.01)
+        normal_init(self.solo_cate, std=0.01, bias=bias_cls)
+
+        for m in self.solo_masks:
+            normal_init(m, std=0.01)
+
+
+    def forward_single(self, x, i):
+        # forward each levels
+        cate_feat = x
+        cate_feat = F.interpolate(
+            cate_feat,
+            size=(self.grid_number[i], self.grid_number[i]),
+            mode='nearest'
+        )
+
+        mask_feat = x
+        for cate_conv in self.cate_convs:
+            cate_feat = cate_conv(cate_feat)
+        for mask_conv in self.mask_convs:
+            mask_feat = mask_conv(mask_feat)
+
+        cate = self.solo_cate(cate_feat)
+
+        mask_feat = F.interpolate(
+            mask_feat, scale_factor=2, mode='bilinear')
+        mask = self.solo_masks[i](mask_feat)
+        return cate, mask
+
+    def forward(self, xs):
+        # apply level
+        cls_scores, masks = multi_apply(self.forward_single, xs, range(self.num_inputs))
+
+        return cls_scores, masks
