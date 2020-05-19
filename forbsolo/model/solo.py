@@ -2,7 +2,7 @@
 import torch.nn as nn
 
 from .registry import MODELS
-from .builder import build_backbone, build_neck, build_head, build_assigner
+from .builder import build_backbone, build_neck, build_head, build_grid
 
 
 @MODELS.register_module
@@ -11,7 +11,7 @@ class SOLO(nn.Module):
                  backbone,
                  neck,
                  head,
-                 assigner,
+                 grid,
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
@@ -20,7 +20,7 @@ class SOLO(nn.Module):
         self.backbone = build_backbone(backbone)
         self.neck = build_neck(neck)
         self.head = build_head(head)
-        self.assigner = build_assigner(assigner)
+        self.grid = build_grid(grid)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -51,6 +51,7 @@ class SOLO(nn.Module):
                       img,
                       img_metas,
                       gt_bboxes,
+                      gt_masks,
                       gt_labels,
                       gt_bboxes_ignore=None):
         x = self.extract_feat(img)
@@ -60,17 +61,21 @@ class SOLO(nn.Module):
         # similarly， bbox_preds
         cls_scores, masks = self.head(x)
 
-        featmap_sizes = [featmap.size()[-2:] for featmap in cls_scores]
+        featmap_sizes = [featmap.size()[-2:] for featmap in masks]
 
-        # labels, label_weights, bbox_targets, bbox_weights, num_total_pos, num_total_neg
-        targets_results = self.assigner.get_targets(
+        targets_results = self.grid.get_target(
             gt_bboxes,
+            gt_masks,
             img_metas,
             gt_bboxes_ignore,
-            gt_labels
+            gt_labels,
+            featmap_sizes,
         )
 
-        pred_results = (cls_scores, bbox_preds)
+        (grid2labels_list, grid2gt2_list, num_total_pos,
+            num_total_neg) = targets_results
+
+        pred_results = (cls_scores, masks)
 
         return pred_results, targets_results
 

@@ -3,4 +3,4 @@ from .solo import SOLO
 from .backbone import ResNet
 from .neck import FPN
 from .head import SOLOHead
-from .assigner import SOLOAssigner
+from .grid import SOLOGrid

@@ -35,8 +35,9 @@ class SOLOHead(nn.Module):
                  num_inputs,
                  in_channels,
                  feat_channels=256,
-                 grid_number=[40, 36, 24, 16, 12],
-                 scale=[[0, 96], [48, 192], [96, 384], [192, 768], [384, -1]],
+                 grid_numbers=[40, 36, 24, 16, 12],
+                 fpn_strides=[4, 8, 16, 32, 64],
+                 strides=[4, 8, 16, 32, 64],
                  stacked_convs=7,
                  inner_thres=0.2,
                  conv_cfg=None,
@@ -48,8 +49,9 @@ class SOLOHead(nn.Module):
         self.num_inputs = num_inputs
         self.in_channels = in_channels
         self.feat_channels = feat_channels
-        self.grid_number = grid_number
-        self.scale = scale
+        self.grid_numbers = grid_numbers
+        self.fpn_strides = fpn_strides
+        self.strides = strides
         self.stacked_convs = stacked_convs
         self.inner_thres = inner_thres
         self.conv_cfg = conv_cfg
@@ -85,7 +87,7 @@ class SOLOHead(nn.Module):
 
         for i in range(self.num_inputs):
             self.solo_masks.append(
-                nn.Conv2d(self.feat_channels, self.grid_number[i], 1)
+                nn.Conv2d(self.feat_channels, self.grid_numbers[i] ** 2, 1)
             )
 
         self.solo_cate = nn.Conv2d(
@@ -102,13 +104,12 @@ class SOLOHead(nn.Module):
         for m in self.solo_masks:
             normal_init(m, std=0.01)
 
-
     def forward_single(self, x, i):
         # forward each levels
         cate_feat = x
         cate_feat = F.interpolate(
             cate_feat,
-            size=(self.grid_number[i], self.grid_number[i]),
+            size=(self.grid_numbers[i], self.grid_numbers[i]),
             mode='nearest'
         )
 
@@ -126,7 +127,22 @@ class SOLOHead(nn.Module):
         return cate, mask
 
     def forward(self, xs):
+
+        xs = self.rescale_feat(xs)
+
         # apply level
         cls_scores, masks = multi_apply(self.forward_single, xs, range(self.num_inputs))
 
         return cls_scores, masks
+
+    def rescale_feat(self, xs):
+        feats = []
+        base_featmap_size = np.asarray(xs[0].shape[-2:], dtype=np.int32)
+        for i, x in enumerate(xs):
+            feats.append(F.interpolate(
+                xs[i],
+                size=tuple(base_featmap_size * self.fpn_strides[0] // self.strides[i]),
+                mode='bilinear'
+            ))
+
+        return tuple(feats)

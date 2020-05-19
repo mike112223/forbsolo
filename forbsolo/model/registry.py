@@ -3,5 +3,5 @@ from forbsolo.utils import Registry
 BACKBONES = Registry('backbone')
 NECKS = Registry('neck')
 HEADS = Registry('head')
-ASSIGNERS = Registry('assigner')
+GRIDS = Registry('grid')
 MODELS = Registry('model')

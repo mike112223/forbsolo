@@ -22,7 +22,7 @@ def get_center_regions(bboxes, inner_thres):
     return center_regions
 
 
-def get_grids(shape, grid_number, device='cuda'):
+def get_grids(shape, grid_number, device='cuda', center=False):
 
     stride_x = shape[1] / grid_number
     stride_y = shape[0] / grid_number
@@ -30,19 +30,19 @@ def get_grids(shape, grid_number, device='cuda'):
     shift_y = np.arange(0, grid_number) * stride_y + stride_y / 2
     pairs = np.meshgrid(shift_x, shift_y)
 
-    # centers = np.column_stack([pairs[0].reshape(-1, 1), pairs[1].reshape(-1, 1)])
-    x1s = (pairs[0] - stride_x / 2).reshape(-1, 1)
-    x2s = (pairs[0] + stride_x / 2).reshape(-1, 1)
-    y1s = (pairs[1] - stride_y / 2).reshape(-1, 1)
-    y2s = (pairs[1] + stride_y / 2).reshape(-1, 1)
-
-    grids = np.column_stack([x1s, y1s, x2s, y2s])
+    if center:
+        returns = np.column_stack([pairs[0].reshape(-1, 1), pairs[1].reshape(-1, 1)])
+    else:
+        x1s = (pairs[0] - stride_x / 2).reshape(-1, 1)
+        x2s = (pairs[0] + stride_x / 2).reshape(-1, 1)
+        y1s = (pairs[1] - stride_y / 2).reshape(-1, 1)
+        y2s = (pairs[1] + stride_y / 2).reshape(-1, 1)
+        returns = np.column_stack([x1s, y1s, x2s, y2s])
 
     if device == 'cuda':
-        grids = torch.from_numpy(grids)
-        # centers = torch.from_numpy(centers)
+        returns = torch.from_numpy(returns)
 
-    return grids
+    return returns
 
 
 def bbox_overlaps(bboxes1, bboxes2, mode='iou'):

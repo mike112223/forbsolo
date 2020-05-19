@@ -21,7 +21,7 @@ data = dict(
             dict(type='Pad', size=(1344, 800)),
             dict(
                 type='Collect',
-                keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks'],
+                keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks', 'gt_bboxes_ignore'],
                 meta_keys=('filename', 'ori_shape', 'img_shape', 'pad_shape', 'scale_factor', 'flip')
             ),
         ],
@@ -29,13 +29,15 @@ data = dict(
             type='DataLoader',
             batch_size=2,
             num_workers=4,
-            shuffle=True,
+            shuffle=False,
             drop_last=True,
         ),
     )
 )
 
 num_outs = 5
+grid_numbers = [40, 36, 24, 16, 12]
+strides = [8, 8, 16, 32, 32]
 
 model = dict(
     type='SOLO',
@@ -48,8 +50,6 @@ model = dict(
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         start_level=0,
-        add_extra_convs=True,
-        extra_conv_stride=1,
         num_outs=num_outs
     ),
     head=dict(
@@ -58,12 +58,14 @@ model = dict(
         num_inputs=num_outs,
         in_channels=256,
         feat_channels=256,
-        grid_number=[40, 36, 24, 16, 12],
+        grid_numbers=grid_numbers,
+        strides=strides,
         stacked_convs=7,
     ),
-    assigner=dict(
-        type='SOLOAssigner',
-        grid_numbers=[40, 36, 24, 16, 12],
+    grid=dict(
+        type='SOLOGrid',
+        grid_numbers=grid_numbers,
+        strides=strides,
         scales=[[0, 96], [48, 192], [96, 384], [192, 768], [384, -1]],
         inner_thres=0.2
     )
