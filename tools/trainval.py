@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.abspath(os.path.dirname(__file__)), '../../forbsolo'))
 
-from forbsolo.assemble import assemble
+from forbsolo.assembler import assemble
 
 
 def parse_args():

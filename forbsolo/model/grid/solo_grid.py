@@ -109,8 +109,6 @@ class SOLOGrid(object):
             # pos_inds [grid_idx, gt_idx]
             pos_inds, neg_inds = self.cls_assign(center_regions, grid_centers, valid_scale_flag)
 
-            print(pos_inds, rescaled_gt_masks.shape, ins_mask.shape)
-
             if len(pos_inds):
                 grid2label[pos_inds[:, 0]] = gt_labels[pos_inds[:, 1]]
                 ins_mask[pos_inds[:, 0]] = rescaled_gt_masks[pos_inds[:, 1]]
@@ -138,7 +136,7 @@ class SOLOGrid(object):
             gt_labels_list = [None for _ in range(num_imgs)]
 
         # apply img
-        all_cate_labels, all_ins_masks, num_neg, num_pos = multi_apply(
+        all_cate_labels, all_ins_masks, num_pos, num_neg = multi_apply(
             self.get_target_single,
             gt_bboxes_list,
             gt_masks_list,

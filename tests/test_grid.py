@@ -29,7 +29,7 @@ for i, batch in enumerate(val_loader):
     gt_bboxes_ignore_list = batch['gt_bboxes_ignore']
 
     pred_results, target_results = model.forward_train(
-        img,
+        img.float().cuda(),
         img_metas,
         gt_bboxes_list,
         gt_masks_list,

@@ -59,9 +59,9 @@ class SOLO(nn.Module):
         # cls_scores (list of levels, default len is 5 (p3-p7))
         # cls_score (each level, shape: [batch(imgs), num_classes * anchors, h, w])
         # similarly， bbox_preds
-        cls_scores, masks = self.head(x)
+        cls_scores, pred_masks = self.head(x)
 
-        featmap_sizes = [featmap.size()[-2:] for featmap in masks]
+        featmap_sizes = [featmap.size()[-2:] for featmap in pred_masks]
 
         targets_results = self.grid.get_target(
             gt_bboxes,
@@ -72,10 +72,7 @@ class SOLO(nn.Module):
             featmap_sizes,
         )
 
-        (grid2labels_list, grid2gt2_list, num_total_pos,
-            num_total_neg) = targets_results
-
-        pred_results = (cls_scores, masks)
+        pred_results = (cls_scores, pred_masks)
 
         return pred_results, targets_results
 
