@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from forbsolo.utils import Config
-from forbsolo.data import build_dataset, build_transform, build_dataloader, default_collate
+from forbsolo.data import build_dataset, build_transform, build_dataloader, collate
 from forbsolo.model import build_model
 from forbsolo.criterion import build_criterion
 from forbsolo.optimizer import build_optimizer, build_lr_scheduler
@@ -26,13 +26,13 @@ def assemble(cfg_fp, checkpoint='', test_mode=False):
 
     if cfg['data'].get('val'):
         val_tf = build_transform(cfg['data']['val']['transforms'])
-        val_dataset = build_dataset(cfg['data']['val']['dataset'], dict(transform=val_tf))
+        val_dataset = build_dataset(cfg['data']['val']['dataset'], dict(transforms=val_tf))
 
     # 2.2 dataloader
-    train_loader = build_dataloader(cfg['data']['train']['loader'], dict(dataset=train_dataset, collate_fn=default_collate))
+    train_loader = build_dataloader(cfg['data']['train']['loader'], dict(dataset=train_dataset, collate_fn=collate))
     loader = {'train': train_loader}
     if cfg['data'].get('val'):
-        val_loader = build_dataloader(cfg['data']['val']['loader'], dict(dataset=val_dataset))
+        val_loader = build_dataloader(cfg['data']['val']['loader'], dict(dataset=val_dataset, collate_fn=collate))
         loader['val'] = val_loader
 
     # 3. model

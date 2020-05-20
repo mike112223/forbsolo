@@ -97,6 +97,7 @@ class Runner(object):
         )
 
         seg_losses, cls_losses = self.criterion(pred_results, target_results)
+        # print(seg_losses, cls_losses)
         losses = sum(seg_losses + cls_losses)
         losses.backward()
 
@@ -104,7 +105,7 @@ class Runner(object):
 
         if self.iter != 0 and self.iter % 10 == 0:
             print(
-                'Train, Epoch %d, Iter %d, LR %s, cls loss %.4f, reg loss %.4f, total loss: %.4f' %
+                'Train, Epoch %d, Iter %d, LR %s, cls loss %.4f, seg loss %.4f, total loss: %.4f' %
                 (self.epoch, self.iter, self.lr, sum(cls_losses).item(),
                  sum(seg_losses).item(), losses.item()))
 
@@ -121,6 +122,7 @@ class Runner(object):
             # print([_['filename'] for _ in img_metas])
             imgs = batch['img']
             gt_bboxes = batch['gt_bboxes']
+            gt_masks = batch['gt_masks']
             gt_labels = batch['gt_labels']
             gt_bboxes_ignore = batch.get('gt_bboxes_ignore', None)
 
@@ -129,25 +131,26 @@ class Runner(object):
                 gt_labels = [_.cuda() for _ in gt_labels]
                 gt_bboxes = [_.cuda() for _ in gt_bboxes]
                 if gt_bboxes_ignore is not None:
-                    gt_bboxes_ignore = gt_bboxes_ignore.cuda()
+                    gt_bboxes_ignore = [_.cuda() for _ in gt_bboxes_ignore]
 
-            preds_results, targets_results = self.model(
+            pred_results, target_results = self.model(
                 imgs,
                 img_metas,
                 self.test_mode,
                 gt_bboxes=gt_bboxes,
+                gt_masks=gt_masks,
                 gt_labels=gt_labels,
                 gt_bboxes_ignore=gt_bboxes_ignore
             )
 
-            reg_losses, cls_losses = self.criterion(preds_results, targets_results)
-            losses = sum(reg_losses + cls_losses)
+            seg_losses, cls_losses = self.criterion(pred_results, target_results)
+            losses = sum(seg_losses + cls_losses)
 
             if self.iter != 0 and self.iter % 10 == 0:
                 print(
-                    'Val, Epoch %d, Iter %d, LR %s, cls loss %.4f, reg loss %.4f, total loss: %.4f' %
+                    'Val, Epoch %d, Iter %d, LR %s, cls loss %.4f, seg loss %.4f, total loss: %.4f' %
                     (self.epoch, self.iter, self.lr, sum(cls_losses).item(),
-                     sum(reg_losses).item(), losses.item()))
+                     sum(seg_losses).item(), losses.item()))
 
     def test_epoch(self):
         print('Epoch %d, Start testing' % self.epoch)

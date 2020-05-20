@@ -1,1 +1,1 @@
-from .collate import default_collate
+from .collate import collate

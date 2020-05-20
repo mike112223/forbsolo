@@ -18,7 +18,7 @@ data = dict(
             dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
             dict(type='RandomFlip', flip_ratio=0.5),
             dict(type='Normalize', **img_norm_cfg),
-            dict(type='Pad', size=(1344, 800)),
+            dict(type='Pad', size_divisor=32),
             dict(
                 type='Collect',
                 keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks', 'gt_bboxes_ignore'],
@@ -28,11 +28,38 @@ data = dict(
         loader=dict(
             type='DataLoader',
             batch_size=2,
+            num_workers=2,
+            shuffle=True,
+            drop_last=True,
+        ),
+    ),
+
+    val=dict(
+        dataset=dict(
+            type=dataset_type,
+            ann_file=dataset_root + 'annotations/instances_val2017.json',
+            img_prefix=dataset_root + 'val2017/',
+        ),
+        transforms=[
+            dict(type='Resize', img_scale=(1333, 800), keep_ratio=True),
+            dict(type='RandomFlip', flip_ratio=0.5),
+            dict(type='Normalize', **img_norm_cfg),
+            dict(type='Pad', size_divisor=32),
+            dict(
+                type='Collect',
+                keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks', 'gt_bboxes_ignore'],
+                # meta_keys=('filename', 'ori_shape', 'img_shape', 'pad_shape', 'scale_factor', 'flip')
+            ),
+        ],
+        loader=dict(
+            type='DataLoader',
+            batch_size=8,
             num_workers=4,
             shuffle=False,
             drop_last=True,
         ),
     )
+
 )
 
 num_outs = 5
@@ -90,7 +117,8 @@ criterion = dict(
 optim = dict(
     optimizer=dict(
         type='SGD',
-        lr=0.01,
+        # num gpus
+        lr=0.01 / 8 * 1,
         momentum=0.9,
         weight_decay=0.0001
     ),
@@ -110,4 +138,4 @@ runner = dict(
     snapshot_interval=5,
 )
 
-gpu_id = '2'
+gpu_id = '1'

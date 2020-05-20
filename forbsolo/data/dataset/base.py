@@ -135,6 +135,7 @@ class BaseDataset(Dataset):
 
         # load img
         filename = results['img_info']['filename']
+        # print('img_name!', filename)
         img = cv2.imread(filename)
         results['img'] = img
         results['filename'] = filename

@@ -22,6 +22,9 @@ class Criteria(nn.Module):
 
         cls_scores, pred_masks = pred_results
 
+        # for i in range(len(cls_scores)):
+
+
         seg_losses, cls_losses = multi_apply(
             self.forward_single,
             cls_scores,
@@ -40,6 +43,12 @@ class Criteria(nn.Module):
                        ins_mask,
                        num_total_pos):
         # seg loss
+        pos_idx = cate_label.reshape(cate_label.size()[0], -1) > 0
+
+        pred_mask = pred_mask[pos_idx].view(pred_mask.size()[0], -1)
+        ins_mask = ins_mask[pos_idx].view(ins_mask.size()[0], -1).float()
+        # print(pred_mask.shape, ins_mask.shape)
+
         seg_loss = self.seg_loss(pred_mask, ins_mask, avg_factor=num_total_pos)
 
         # cls loss
@@ -47,6 +56,6 @@ class Criteria(nn.Module):
         cate_label = F.one_hot(cate_label, self.num_classes + 1)[:, 1:]
         cls_score = cls_score.permute(0, 2, 3, 1).reshape(-1, self.num_classes)
 
-        cls_loss = self.cls_loss(cls_score, cate_label, avg_factor=num_total_pos)
+        cls_loss = self.cls_loss(cls_score, cate_label, avg_factor=num_total_pos + 1)
 
         return seg_loss, cls_loss

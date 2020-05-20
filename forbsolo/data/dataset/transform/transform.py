@@ -65,7 +65,13 @@ class Resize(object):
     def __resize_img(self, img, return_scale=False):
         h, w = img.shape[:2]
         if self.keep_ratio:
-            scale_factor = min(self.img_scale[0] / w, self.img_scale[1] / h)
+
+            max_long_edge = max(self.img_scale)
+            max_short_edge = min(self.img_scale)
+            scale_factor = min(max_long_edge / max(h, w),
+                               max_short_edge / min(h, w))
+
+            # scale_factor = min(self.img_scale[0] / w, self.img_scale[1] / h)
             new_size = (
                 int(w * float(scale_factor) + 0.5),
                 int(h * float(scale_factor) + 0.5)

@@ -20,11 +20,11 @@ class DiceLoss(nn.Module):
                 weight=None,
                 avg_factor=None):
 
-        pred_sigmoid = pred.sigmoid()
+        pred = pred.sigmoid()
         target = target.type_as(pred)
 
-        dice = (2 * torch.sum(pred_sigmoid * target) /
-                (torch.sum(pred_sigmoid ** 2) + torch.sum(target ** 2)) + self.epsilon)
+        dice = (2 * torch.sum(pred * target, 1) /
+                ((torch.sum(pred ** 2, 1) + torch.sum(target ** 2, 1)) + self.epsilon))
 
         loss = 1 - dice
 
