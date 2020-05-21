@@ -1,12 +1,10 @@
 import copy
 
-import torch.utils.data as torch_data
+from .dataset.transform import Compose
+from .dataset.dataset_wrappers import ConcatDataset
+from .registry import DATASETS, DATALOADERS, SAMPLERS, TRANSFORMS
 
 from forbsolo.utils import build_from_cfg
-from .dataset.transform import Compose
-
-from .dataset.dataset_wrappers import ConcatDataset
-from .registry import DATASETS, TRANSFORMS
 
 
 def _concat_dataset(cfg, default_args=None):
@@ -29,8 +27,13 @@ def _concat_dataset(cfg, default_args=None):
 
 
 def build_dataloader(cfg, default_args):
-    loader = build_from_cfg(cfg, torch_data, default_args, 'module')
+    loader = build_from_cfg(cfg, DATALOADERS, default_args)
     return loader
+
+
+def build_sampler(cfg, default_args):
+    sampler = build_from_cfg(cfg, SAMPLERS, default_args)
+    return sampler
 
 
 def build_dataset(cfg, default_args=None):

@@ -5,25 +5,27 @@ import torch
 
 from forbsolo.model.utils import get_grids, get_center_regions
 
-def cls_assign(center_regions, grid_centers, valid_scale_flag):
+def cls_assign(center_regions, grids, valid_scale_flag):
     '''
         shape: center_regions (num_gt_box, 4)
                grids (grid_number^2, 2)
     '''
-    grid_centers = grid_centers.type_as(center_regions)
+    grids = grids.type_as(center_regions)
 
-    cxs = grid_centers[:, 0].unsqueeze(dim=1)
-    cys = grid_centers[:, 1].unsqueeze(dim=1)
+    gx1s = grids[:, 0].unsqueeze(dim=1)
+    gy1s = grids[:, 1].unsqueeze(dim=1)
+    gx2s = grids[:, 2].unsqueeze(dim=1)
+    gy2s = grids[:, 3].unsqueeze(dim=1)
 
     rx1s = center_regions[:, 0]
     ry1s = center_regions[:, 1]
     rx2s = center_regions[:, 2]
     ry2s = center_regions[:, 3]
 
-    x1_judge = cxs - rx1s
-    y1_judge = cys - ry1s
-    x2_judge = cxs - rx2s
-    y2_judge = cys - ry2s
+    x1_judge = gx1s - rx1s
+    y1_judge = gy1s - ry1s
+    x2_judge = gx2s - rx2s
+    y2_judge = gy2s - ry2s
 
     assigner = (x1_judge > 0) * (y1_judge > 0) * \
         (x2_judge < 0) * (y2_judge < 0) * valid_scale_flag

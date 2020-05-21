@@ -1,6 +1,9 @@
 
 workdir = 'workdir'
 
+seed = 123
+deterministic = True
+
 img_norm_cfg = dict(mean=(123.675, 116.280, 103.530), std=(58.395, 57.120, 57.375))
 ignore_label = 255
 
@@ -26,10 +29,12 @@ data = dict(
             ),
         ],
         loader=dict(
-            type='DataLoader',
+            type='BaseDataLoader',
+            sampler=dict(
+                type='GroupSampler',
+            ),
             batch_size=2,
             num_workers=2,
-            shuffle=True,
             drop_last=True,
         ),
     ),
@@ -52,10 +57,12 @@ data = dict(
             ),
         ],
         loader=dict(
-            type='DataLoader',
-            batch_size=8,
+            type='BaseDataLoader',
+            sampler=dict(
+                type='GroupSampler',
+            ),
+            batch_size=4,
             num_workers=4,
-            shuffle=False,
             drop_last=True,
         ),
     )
@@ -136,6 +143,7 @@ runner = dict(
     max_epochs=12,
     trainval_ratio=1,
     snapshot_interval=5,
+    print_freq=20,
 )
 
 gpu_id = '1'

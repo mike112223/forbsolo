@@ -49,15 +49,6 @@ class BaseDataset(Dataset):
         if not self.test_mode:
             self._set_group_flag()
 
-    def __len__(self):
-        return len(self.img_infos)
-
-    def load_annotations(self, ann_file):
-        pass
-
-    def get_ann_info(self, idx):
-        return self.img_infos[idx]['ann']
-
     def _filter_imgs(self, min_size=32):
         """Filter images too small."""
         valid_inds = []
@@ -120,8 +111,23 @@ class BaseDataset(Dataset):
         results['mask_fields'].append('gt_masks')
         return results
 
+    def _rand_another(self, idx):
+        pool = np.where(self.flag == self.flag[idx])[0]
+        return np.random.choice(pool)
+
+    def __len__(self):
+        return len(self.img_infos)
+
+    def load_annotations(self, ann_file):
+        pass
+
+    def get_ann_info(self, idx):
+        return self.img_infos[idx]['ann']
 
     def __getitem__(self, idx):
+
+        if not self.test_mode:
+            idx = self._rand_another(idx)
 
         img_info = self.img_infos[idx]
         ann_info = self.get_ann_info(idx)

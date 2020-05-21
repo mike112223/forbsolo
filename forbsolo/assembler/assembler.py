@@ -1,15 +1,35 @@
 import os
+import random
 
 import torch
 from torch import nn
+import numpy as np
 
 from forbsolo.utils import Config
-from forbsolo.data import build_dataset, build_transform, build_dataloader, collate
+from forbsolo.data import build_dataset, build_transform, build_dataloader
 from forbsolo.model import build_model
 from forbsolo.criterion import build_criterion
 from forbsolo.optimizer import build_optimizer, build_lr_scheduler
 from forbsolo.runner import build_runner
 
+
+def set_random_seed(seed, deterministic=False):
+    """Set random seed.
+
+    Args:
+        seed (int): Seed to be used.
+        deterministic (bool): Whether to set the deterministic option for
+            CUDNN backend, i.e., set `torch.backends.cudnn.deterministic`
+            to True and `torch.backends.cudnn.benchmark` to False.
+            Default: False.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
 def assemble(cfg_fp, checkpoint='', test_mode=False):
 
@@ -17,6 +37,11 @@ def assemble(cfg_fp, checkpoint='', test_mode=False):
     print('build config!')
     cfg = Config.fromfile(cfg_fp)
     os.environ['CUDA_VISIBLE_DEVICES'] = cfg['gpu_id']
+
+    seed = cfg.get('seed', None)
+    deterministic = cfg.get('deterministic', False)
+    if seed is not None:
+        set_random_seed(seed, deterministic)
 
     # 2. data
     # 2.1 dataset
@@ -29,10 +54,10 @@ def assemble(cfg_fp, checkpoint='', test_mode=False):
         val_dataset = build_dataset(cfg['data']['val']['dataset'], dict(transforms=val_tf))
 
     # 2.2 dataloader
-    train_loader = build_dataloader(cfg['data']['train']['loader'], dict(dataset=train_dataset, collate_fn=collate))
+    train_loader = build_dataloader(cfg['data']['train']['loader'], dict(dataset=train_dataset))
     loader = {'train': train_loader}
     if cfg['data'].get('val'):
-        val_loader = build_dataloader(cfg['data']['val']['loader'], dict(dataset=val_dataset, collate_fn=collate))
+        val_loader = build_dataloader(cfg['data']['val']['loader'], dict(dataset=val_dataset))
         loader['val'] = val_loader
 
     # 3. model

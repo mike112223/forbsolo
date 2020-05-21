@@ -26,7 +26,8 @@ class Runner(object):
                  snapshot_interval=1,
                  gpu=True,
                  test_cfg=None,
-                 test_mode=False):
+                 test_mode=False,
+                 print_freq=50):
         self.loader = loader
         self.model = model
         self.criterion = criterion
@@ -41,6 +42,7 @@ class Runner(object):
         self.gpu = gpu
         self.test_cfg = test_cfg
         self.test_mode = test_mode
+        self.print_freq = print_freq
 
     def __call__(self):
         if self.test_mode:
@@ -103,10 +105,10 @@ class Runner(object):
 
         self.optim.step()
 
-        if self.iter != 0 and self.iter % 10 == 0:
+        if self.iter != 0 and self.iter % self.print_freq == 0:
             print(
-                'Train, Epoch %d, Iter %d, LR %s, cls loss %.4f, seg loss %.4f, total loss: %.4f' %
-                (self.epoch, self.iter, self.lr, sum(cls_losses).item(),
+                'Train, Epoch[%d][%d/%d], lr %s, cls loss %.4f, seg loss %.4f, total loss: %.4f' %
+                (self.epoch, self.iter, len(self.loader['train']), self.lr, sum(cls_losses).item(),
                  sum(seg_losses).item(), losses.item()))
 
     def val_epoch(self):
@@ -148,8 +150,8 @@ class Runner(object):
 
             if self.iter != 0 and self.iter % 10 == 0:
                 print(
-                    'Val, Epoch %d, Iter %d, LR %s, cls loss %.4f, seg loss %.4f, total loss: %.4f' %
-                    (self.epoch, self.iter, self.lr, sum(cls_losses).item(),
+                    'Val, Epoch[%d][%d/%d], lr %s, cls loss %.4f, seg loss %.4f, total loss: %.4f' %
+                    (self.epoch, self.iter, len(self.loader['val']), self.lr, sum(cls_losses).item(),
                      sum(seg_losses).item(), losses.item()))
 
     def test_epoch(self):
