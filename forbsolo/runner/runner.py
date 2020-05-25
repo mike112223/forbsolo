@@ -16,7 +16,6 @@ class Runner(object):
     def __init__(self,
                  loader,
                  model,
-                 criterion,
                  optim,
                  lr_scheduler,
                  max_epochs,
@@ -30,7 +29,6 @@ class Runner(object):
                  print_freq=50):
         self.loader = loader
         self.model = model
-        self.criterion = criterion
         self.metric = None
         self.optim = optim
         self.lr_scheduler = lr_scheduler
@@ -73,33 +71,7 @@ class Runner(object):
 
         self.optim.zero_grad()
 
-        img_metas = batch['img_meta']
-        # print([_['filename'] for _ in img_metas])
-        imgs = batch['img']
-        gt_bboxes = batch['gt_bboxes']
-        gt_masks = batch['gt_masks']
-        gt_labels = batch['gt_labels']
-        gt_bboxes_ignore = batch.get('gt_bboxes_ignore', None)
-
-        if self.gpu:
-            imgs = imgs.cuda()
-            gt_labels = [_.cuda() for _ in gt_labels]
-            gt_bboxes = [_.cuda() for _ in gt_bboxes]
-            if gt_bboxes_ignore is not None:
-                gt_bboxes_ignore = [_.cuda() for _ in gt_bboxes_ignore]
-
-        pred_results, target_results = self.model(
-            imgs,
-            img_metas,
-            self.test_mode,
-            gt_bboxes=gt_bboxes,
-            gt_masks=gt_masks,
-            gt_labels=gt_labels,
-            gt_bboxes_ignore=gt_bboxes_ignore
-        )
-
-        seg_losses, cls_losses = self.criterion(pred_results, target_results)
-        # print(seg_losses, cls_losses)
+        seg_losses, cls_losses = self.model(**batch)
         losses = sum(seg_losses + cls_losses)
         losses.backward()
 
@@ -120,32 +92,7 @@ class Runner(object):
         self.model.eval()
         with torch.no_grad():
 
-            img_metas = batch['img_meta']
-            # print([_['filename'] for _ in img_metas])
-            imgs = batch['img']
-            gt_bboxes = batch['gt_bboxes']
-            gt_masks = batch['gt_masks']
-            gt_labels = batch['gt_labels']
-            gt_bboxes_ignore = batch.get('gt_bboxes_ignore', None)
-
-            if self.gpu:
-                imgs = imgs.cuda()
-                gt_labels = [_.cuda() for _ in gt_labels]
-                gt_bboxes = [_.cuda() for _ in gt_bboxes]
-                if gt_bboxes_ignore is not None:
-                    gt_bboxes_ignore = [_.cuda() for _ in gt_bboxes_ignore]
-
-            pred_results, target_results = self.model(
-                imgs,
-                img_metas,
-                self.test_mode,
-                gt_bboxes=gt_bboxes,
-                gt_masks=gt_masks,
-                gt_labels=gt_labels,
-                gt_bboxes_ignore=gt_bboxes_ignore
-            )
-
-            seg_losses, cls_losses = self.criterion(pred_results, target_results)
+            seg_losses, cls_losses = self.model(**batch)
             losses = sum(seg_losses + cls_losses)
 
             if self.iter != 0 and self.iter % 10 == 0:

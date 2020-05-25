@@ -14,7 +14,7 @@ cat_color = np.random.randint(0, 255, (80, 3))
 
 
 def main():
-    cfg_fp = os.path.join(os.path.abspath('config'), 'solo_test.py')
+    cfg_fp = os.path.join(os.path.abspath('config'), 'solo_r50_fpn_single_gpu.py')
     cfg = Config.fromfile(cfg_fp)
 
     val_tf = build_transform(cfg['data']['val']['transforms'])

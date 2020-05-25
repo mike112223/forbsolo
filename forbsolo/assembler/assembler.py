@@ -2,7 +2,6 @@ import os
 import random
 
 import torch
-from torch import nn
 import numpy as np
 
 from forbsolo.utils import Config
@@ -11,6 +10,8 @@ from forbsolo.model import build_model
 from forbsolo.criterion import build_criterion
 from forbsolo.optimizer import build_optimizer, build_lr_scheduler
 from forbsolo.runner import build_runner
+
+from forbsolo.parallel import SOLODataParallel
 
 
 def set_random_seed(seed, deterministic=False):
@@ -66,16 +67,12 @@ def assemble(cfg_fp, checkpoint='', test_mode=False):
     if torch.cuda.is_available():
         gpu = True
         if torch.cuda.device_count() > 1:
-            model = nn.DataParallel(model)
+            model = SOLODataParallel(model, device_ids=range(torch.cuda.device_count()))
         model.cuda()
     else:
         gpu = False
 
-    # 4. criterion
-    print('build loss!')
-    criterion = build_criterion(cfg['criterion'])
-
-    # 5. optim
+    # 4. optim
     print('build optimizer!')
     optimizer = build_optimizer(
         cfg['optim']['optimizer'],
@@ -86,14 +83,13 @@ def assemble(cfg_fp, checkpoint='', test_mode=False):
         dict(optimizer=optimizer, niter_per_epoch=len(train_loader))
     )
 
-    # 6. runner
+    # 5. runner
     print('build runner!')
     runner = build_runner(
         cfg['runner'],
         dict(
             loader=loader,
             model=model,
-            criterion=criterion,
             optim=optimizer,
             lr_scheduler=lr_scheduler,
             workdir=cfg['workdir'],

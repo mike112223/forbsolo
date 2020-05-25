@@ -1,4 +1,6 @@
 
+from functools import partial
+
 from torch.utils.data import DataLoader
 
 from .collate import collate
@@ -12,7 +14,8 @@ class BaseDataLoader(DataLoader):
     def __init__(self,
                  dataset,
                  sampler,
-                 batch_size,
+                 samples_per_gpu,
+                 num_gpu,
                  shuffle=True,
                  **kwarg):
 
@@ -20,15 +23,17 @@ class BaseDataLoader(DataLoader):
             sampler = build_sampler(
                 sampler,
                 dict(dataset=dataset,
-                     samples_per_gpu=batch_size)
+                     samples_per_gpu=samples_per_gpu)
             )
         else:
             sampler = None
 
+        batch_size = num_gpu * samples_per_gpu
+
         super().__init__(
             dataset,
             batch_size=batch_size,
-            collate_fn=collate,
+            collate_fn=partial(collate, samples_per_gpu=samples_per_gpu),
             sampler=sampler,
             pin_memory=False,
             **kwarg)

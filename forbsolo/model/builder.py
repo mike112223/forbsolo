@@ -1,6 +1,6 @@
 from forbsolo.utils import build_from_cfg
 
-from .registry import BACKBONES, NECKS, HEADS, GRIDS, MODELS
+from .registry import BACKBONES, NECKS, HEADS, GRIDS, CRITERIA, LOSSES, MODELS
 
 
 def build_backbone(cfg, default_args=None):
@@ -21,6 +21,16 @@ def build_head(cfg, default_args=None):
 def build_grid(cfg, default_args=None):
     grid = build_from_cfg(cfg, GRIDS, default_args)
     return grid
+
+
+def build_criterion(cfg, default_args=None):
+    criterion = build_from_cfg(cfg, CRITERIA, default_args)
+    return criterion
+
+
+def build_loss(cfg, default_args=None):
+    loss = build_from_cfg(cfg, LOSSES, default_args)
+    return loss
 
 
 def build_model(cfg, default_args=None):

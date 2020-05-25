@@ -94,8 +94,10 @@ class SOLOGrid(object):
             scale = self.scales[i]
             featmap_size = featmap_sizes[i]
 
-            ins_mask = torch.zeros([grid_number ** 2, featmap_size[0], featmap_size[1]],
-                                   dtype=torch.uint8)
+            ins_mask = rescaled_gt_masks.new_zeros(
+                [grid_number ** 2, featmap_size[0], featmap_size[1]],
+                dtype=torch.uint8)
+
             grid2label = gt_labels.new_tensor([0] * grid_number ** 2, dtype=torch.long)
 
             ws = gt_bboxes[:, 2] - gt_bboxes[:, 0]

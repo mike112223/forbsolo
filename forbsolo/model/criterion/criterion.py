@@ -1,16 +1,17 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .builder import build_loss
-from .registry import CRITERIA
+from ..builder import build_loss
+from ..registry import CRITERIA
 
 from forbsolo.model.utils import multi_apply
 
 
 @CRITERIA.register_module
-class Criteria(nn.Module):
+class Criterion(nn.Module):
     def __init__(self, cls_loss, seg_loss, num_classes):
-        super(Criteria, self).__init__()
+        super(Criterion, self).__init__()
         self.cls_loss = build_loss(cls_loss)
         self.seg_loss = build_loss(seg_loss)
         self.num_classes = num_classes
@@ -24,7 +25,6 @@ class Criteria(nn.Module):
 
         # for i in range(len(cls_scores)):
 
-
         seg_losses, cls_losses = multi_apply(
             self.forward_single,
             cls_scores,
@@ -34,9 +34,12 @@ class Criteria(nn.Module):
             num_total_pos=num_total_pos,
         )
 
-        return seg_losses, cls_losses
+        seg_loss = torch.cat(seg_losses)
+        cls_loss = torch.cat(cls_losses)
 
-    def forward_single(self,
+        return seg_loss, cls_loss
+
+    def forward_single(self, 
                        cls_score,
                        pred_mask,
                        cate_label,
@@ -47,15 +50,17 @@ class Criteria(nn.Module):
 
         pred_mask = pred_mask[pos_idx].view(pred_mask.size()[0], -1)
         ins_mask = ins_mask[pos_idx].view(ins_mask.size()[0], -1).float()
-        # print(pred_mask.shape, ins_mask.shape)
 
-        seg_loss = self.seg_loss(pred_mask, ins_mask, avg_factor=num_total_pos)
+        seg_weight = 1. if pred_mask.numel() else 0.
+        seg_loss = self.seg_loss(pred_mask, ins_mask, weight=seg_weight,
+                                 avg_factor=num_total_pos).unsqueeze(0)
 
         # cls loss
         cate_label = cate_label.reshape(-1)
         cate_label = F.one_hot(cate_label, self.num_classes + 1)[:, 1:]
         cls_score = cls_score.permute(0, 2, 3, 1).reshape(-1, self.num_classes)
 
-        cls_loss = self.cls_loss(cls_score, cate_label, avg_factor=num_total_pos + 1)
+        cls_loss = self.cls_loss(cls_score, cate_label,
+                                 avg_factor=num_total_pos + 1).unsqueeze(0)
 
         return seg_loss, cls_loss

@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from ..registry import LOSSES
+from ...registry import LOSSES
 
 
 @LOSSES.register_module
@@ -32,6 +32,8 @@ class FocalLoss(nn.Module):
                         (1 - target)) * pt.pow(self.gamma)
         loss = F.binary_cross_entropy_with_logits(
             pred, target, reduction='none') * focal_weight
+
+        loss *= self.loss_weight
 
         if weight is not None:
             loss *= weight

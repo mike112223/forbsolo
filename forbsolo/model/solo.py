@@ -2,7 +2,7 @@
 import torch.nn as nn
 
 from .registry import MODELS
-from .builder import build_backbone, build_neck, build_head, build_grid
+from .builder import build_backbone, build_neck, build_head, build_grid, build_criterion
 
 
 @MODELS.register_module
@@ -12,6 +12,7 @@ class SOLO(nn.Module):
                  neck,
                  head,
                  grid,
+                 criterion,
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
@@ -21,6 +22,7 @@ class SOLO(nn.Module):
         self.neck = build_neck(neck)
         self.head = build_head(head)
         self.grid = build_grid(grid)
+        self.criterion = build_criterion(criterion)
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -63,7 +65,7 @@ class SOLO(nn.Module):
 
         featmap_sizes = [featmap.size()[-2:] for featmap in pred_masks]
 
-        targets_results = self.grid.get_target(
+        target_results = self.grid.get_target(
             gt_bboxes,
             gt_masks,
             img_metas,
@@ -74,7 +76,9 @@ class SOLO(nn.Module):
 
         pred_results = (cls_scores, pred_masks)
 
-        return pred_results, targets_results
+        seg_losses, cls_losses = self.criterion(pred_results, target_results)
+
+        return seg_losses, cls_losses
 
     def forward_test(self, imgs, img_metas, **kwargs):
         """
