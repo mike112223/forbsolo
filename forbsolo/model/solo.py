@@ -63,6 +63,9 @@ class SOLO(nn.Module):
         # similarly， bbox_preds
         cls_scores, pred_masks = self.head(x)
 
+        import pdb
+        pdb.set_trace()
+
         featmap_sizes = [featmap.size()[-2:] for featmap in pred_masks]
 
         target_results = self.grid.get_target(

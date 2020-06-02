@@ -10,7 +10,7 @@ class SOLOGrid(object):
     def __init__(self,
                  grid_numbers=[40, 36, 24, 16, 12],
                  strides=[4, 8, 16, 32, 64],
-                 scales=[[0, 96], [48, 192], [96, 384], [192, 768], [384, 2048]],
+                 scales=[[1, 96], [48, 192], [96, 384], [192, 768], [384, 2048]],
                  inner_thres=0.2):
         super(SOLOGrid, self).__init__()
 
@@ -84,6 +84,10 @@ class SOLOGrid(object):
         # shape: (num_gt_box, 4)
         center_regions = get_center_regions(gt_masks, gt_bboxes, self.inner_thres)
 
+        ws = gt_bboxes[:, 2] - gt_bboxes[:, 0]
+        hs = gt_bboxes[:, 3] - gt_bboxes[:, 1]
+        areas = torch.sqrt(ws * hs)
+
         # process each level
         for i in range(len(self.grid_numbers)):
 
@@ -102,10 +106,6 @@ class SOLOGrid(object):
 
             grid2label = gt_labels.new_tensor([0] * grid_number ** 2, dtype=torch.long)
 
-            ws = gt_bboxes[:, 2] - gt_bboxes[:, 0]
-            hs = gt_bboxes[:, 3] - gt_bboxes[:, 1]
-            areas = torch.sqrt(ws * hs)
-
             valid_scale_flag = (areas >= scale[0]) * (areas <= scale[1])
 
             # shape: (grid_number^2, 2 (4))
@@ -122,6 +122,9 @@ class SOLOGrid(object):
             ins_masks.append(ins_mask)
             num_pos += len((grid2label).nonzero())
             num_neg += len(neg_inds)
+
+        import pdb
+        pdb.set_trace()
 
         return cate_labels, ins_masks, num_pos, num_neg
 

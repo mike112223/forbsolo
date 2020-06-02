@@ -24,7 +24,7 @@ class DiceLoss(nn.Module):
         target = target.type_as(pred)
 
         dice = (2 * torch.sum(pred * target, 1) /
-                ((torch.sum(pred ** 2, 1) + torch.sum(target ** 2, 1)) + self.epsilon))
+                ((torch.sum(pred ** 2, 1) + torch.sum(target ** 2, 1)) + 2 * self.epsilon))
 
         loss = (1 - dice) * self.loss_weight
 

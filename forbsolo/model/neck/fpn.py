@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import NECKS
-from ..utils import ConvModule, xavier_init
+from ..utils import ConvModule, xavier_init, constant_init
 
 
 @NECKS.register_module
@@ -95,7 +95,9 @@ class FPN(nn.Module):
     def init_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                xavier_init(m, distribution='uniform')
+                # xavier_init(m, distribution='uniform')
+                constant_init(m, 0.001)
+
 
     def forward(self, inputs):
         assert len(inputs) == len(self.in_channels)

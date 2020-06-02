@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from ..registry import HEADS
 from ..utils import (ConvModule, bias_init_with_prob,
-                     normal_init, multi_apply)
+                     normal_init, multi_apply, constant_init)
 
 
 @HEADS.register_module
@@ -97,14 +97,18 @@ class SOLOHead(nn.Module):
 
     def init_weights(self):
         for m in self.cate_convs:
-            normal_init(m.conv, std=0.01)
+            # normal_init(m.conv, std=0.01)
+            constant_init(m.conv, 0.0001)
         for m in self.mask_convs:
-            normal_init(m.conv, std=0.01)
-        bias_cls = bias_init_with_prob(0.01)
-        normal_init(self.solo_cate, std=0.01, bias=bias_cls)
+            # normal_init(m.conv, std=0.01)
+            constant_init(m.conv, 0.0001)
+        # bias_cls = bias_init_with_prob(0.01)
+        # normal_init(self.solo_cate, std=0.01, bias=bias_cls)
+        constant_init(self.solo_cate, 0.0001)
 
         for m in self.solo_masks:
-            normal_init(m, std=0.01)
+            constant_init(m, 0.0001)
+            # normal_init(m, std=0.01)
 
     @staticmethod
     def spatial_info_encode(feat):
@@ -125,7 +129,7 @@ class SOLOHead(nn.Module):
         cate_feat = F.interpolate(
             cate_feat,
             size=(self.grid_numbers[i], self.grid_numbers[i]),
-            mode='nearest'
+            mode='bilinear'
         )
         mask_feat = self.spatial_info_encode(x)
 
