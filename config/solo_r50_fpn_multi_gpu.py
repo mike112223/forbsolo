@@ -107,7 +107,7 @@ model = dict(
         type='SOLOGrid',
         grid_numbers=grid_numbers,
         strides=strides,
-        scales=[[0, 96], [48, 192], [96, 384], [192, 768], [384, 2048]],
+        scales=[[1, 96], [48, 192], [96, 384], [192, 768], [384, 2048]],
         inner_thres=0.2
     ),
     criterion=dict(

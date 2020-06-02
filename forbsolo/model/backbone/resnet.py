@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.nn.modules.batchnorm import _BatchNorm
 
 try:
     from torch.hub import load_state_dict_from_url
@@ -123,13 +124,14 @@ class ResNetCls(nn.Module):
     def __init__(self, block, layers, num_classes=1000,
                  zero_init_residual=False, groups=1,
                  width_per_group=64, frozen_stages=-1,
-                 replace_stride_with_dilation=None,
+                 replace_stride_with_dilation=None, norm_eval=True,
                  norm_layer=None, out_indices=(0, 1, 2, 3)):
         super(ResNetCls, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
         self.out_indices = out_indices
+        self.norm_eval = norm_eval
         self.frozen_stages = frozen_stages
 
         self.inplanes = 64
@@ -240,6 +242,14 @@ class ResNetCls(nn.Module):
 
         return x
 
+    def train(self, mode=True):
+        super(ResNetCls, self).train(mode)
+        self._freeze_stages()
+        if mode and self.norm_eval:
+            for m in self.modules():
+                # trick: eval have effect on BatchNorm only
+                if isinstance(m, _BatchNorm):
+                    m.eval()
 
 MODEL_CFGS = {
     'resnet18': {

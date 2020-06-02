@@ -48,8 +48,9 @@ class Criterion(nn.Module):
         # seg loss
         pos_idx = cate_label.reshape(cate_label.size()[0], -1) > 0
 
-        pred_mask = pred_mask[pos_idx].view(pred_mask.size()[0], -1)
-        ins_mask = ins_mask[pos_idx].view(ins_mask.size()[0], -1).float()
+        pred_mask = pred_mask[pos_idx]
+        pred_mask = pred_mask.view(pred_mask.size()[0], -1)
+        ins_mask = ins_mask[pos_idx].view(pred_mask.size()[0], -1).float()
 
         seg_weight = 1. if pred_mask.numel() else 0.
         seg_loss = self.seg_loss(pred_mask, ins_mask, weight=seg_weight,

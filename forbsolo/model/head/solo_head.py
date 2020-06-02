@@ -125,7 +125,7 @@ class SOLOHead(nn.Module):
         cate_feat = F.interpolate(
             cate_feat,
             size=(self.grid_numbers[i], self.grid_numbers[i]),
-            mode='nearest'
+            mode='bilinear'
         )
         mask_feat = self.spatial_info_encode(x)
 
