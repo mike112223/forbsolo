@@ -1,10 +1,12 @@
 import numpy as np
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from ..registry import HEADS
-from ..utils import (ConvModule, bias_init_with_prob, normal_init, multi_apply)
+from ..utils import (ConvModule, bias_init_with_prob,
+                     normal_init, multi_apply)
 
 
 @HEADS.register_module
@@ -60,12 +62,11 @@ class SOLOHead(nn.Module):
         self._init_layers()
 
     def _init_layers(self):
-        self.relu = nn.ReLU(inplace=True)
         self.mask_convs = nn.ModuleList()
         self.cate_convs = nn.ModuleList()
         self.solo_masks = nn.ModuleList()
         for i in range(self.stacked_convs):
-            chn = self.in_channels if i == 0 else self.feat_channels
+            chn = self.in_channels + 2 if i == 0 else self.feat_channels
             self.mask_convs.append(
                 ConvModule(
                     chn,
@@ -75,6 +76,7 @@ class SOLOHead(nn.Module):
                     padding=1,
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg))
+            chn = self.in_channels if i == 0 else self.feat_channels
             self.cate_convs.append(
                 ConvModule(
                     chn,
@@ -91,7 +93,7 @@ class SOLOHead(nn.Module):
             )
 
         self.solo_cate = nn.Conv2d(
-            self.feat_channels, self.num_classes, 1)
+            self.feat_channels, self.num_classes, 3, padding=1)
 
     def init_weights(self):
         for m in self.cate_convs:
@@ -104,6 +106,19 @@ class SOLOHead(nn.Module):
         for m in self.solo_masks:
             normal_init(m, std=0.01)
 
+    @staticmethod
+    def spatial_info_encode(feat):
+        # ins branch
+        # concat coord
+        x_range = torch.linspace(-1, 1, feat.shape[-1], device=feat.device)
+        y_range = torch.linspace(-1, 1, feat.shape[-2], device=feat.device)
+        y, x = torch.meshgrid(y_range, x_range)
+        y = y.expand([feat.shape[0], 1, -1, -1])
+        x = x.expand([feat.shape[0], 1, -1, -1])
+        coord_feat = torch.cat([x, y], 1)
+        feat = torch.cat([feat, coord_feat], 1)
+        return feat
+
     def forward_single(self, x, i):
         # forward each levels
         cate_feat = x
@@ -112,8 +127,8 @@ class SOLOHead(nn.Module):
             size=(self.grid_numbers[i], self.grid_numbers[i]),
             mode='nearest'
         )
+        mask_feat = self.spatial_info_encode(x)
 
-        mask_feat = x
         for cate_conv in self.cate_convs:
             cate_feat = cate_conv(cate_feat)
         for mask_conv in self.mask_convs:

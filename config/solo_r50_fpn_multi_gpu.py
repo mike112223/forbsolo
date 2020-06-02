@@ -1,6 +1,6 @@
 
 workdir = 'workdir'
-gpu_id = '0,3'
+gpu_id = '2,3'
 num_gpu = len(gpu_id.split(','))
 
 
@@ -84,6 +84,7 @@ model = dict(
     backbone=dict(
         type='ResNet',
         arch='resnet50',
+        frozen_stages=1,
     ),
     neck=dict(
         type='FPN',
@@ -106,7 +107,7 @@ model = dict(
         type='SOLOGrid',
         grid_numbers=grid_numbers,
         strides=strides,
-        scales=[[0, 96], [48, 192], [96, 384], [192, 768], [384, -1]],
+        scales=[[0, 96], [48, 192], [96, 384], [192, 768], [384, 2048]],
         inner_thres=0.2
     ),
     criterion=dict(

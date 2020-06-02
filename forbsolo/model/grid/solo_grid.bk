@@ -10,7 +10,7 @@ class SOLOGrid(object):
     def __init__(self,
                  grid_numbers=[40, 36, 24, 16, 12],
                  strides=[4, 8, 16, 32, 64],
-                 scales=[[0, 96], [48, 192], [96, 384], [192, 768], [384, 2048]],
+                 scales=[[0, 96], [48, 192], [96, 384], [192, 768], [384, -1]],
                  inner_thres=0.2):
         super(SOLOGrid, self).__init__()
 
@@ -27,20 +27,18 @@ class SOLOGrid(object):
         '''
         grids = grids.type_as(center_regions)
 
-        gx1s = grids[:, 0].unsqueeze(dim=1)
-        gy1s = grids[:, 1].unsqueeze(dim=1)
-        gx2s = grids[:, 2].unsqueeze(dim=1)
-        gy2s = grids[:, 3].unsqueeze(dim=1)
+        cxs = grids[:, 0].unsqueeze(dim=1)
+        cys = grids[:, 1].unsqueeze(dim=1)
 
         rx1s = center_regions[:, 0]
         ry1s = center_regions[:, 1]
         rx2s = center_regions[:, 2]
         ry2s = center_regions[:, 3]
 
-        x1_judge = gx2s - rx1s
-        y1_judge = gy2s - ry1s
-        x2_judge = gx1s - rx2s
-        y2_judge = gy1s - ry2s
+        x1_judge = cxs - rx1s
+        y1_judge = cys - ry1s
+        x2_judge = cxs - rx2s
+        y2_judge = cys - ry2s
 
         assigner = (x1_judge > 0) * (y1_judge > 0) * \
             (x2_judge < 0) * (y2_judge < 0) * valid_scale_flag
@@ -106,7 +104,7 @@ class SOLOGrid(object):
             hs = gt_bboxes[:, 3] - gt_bboxes[:, 1]
             areas = torch.sqrt(ws * hs)
 
-            valid_scale_flag = (areas >= scale[0]) * (areas <= scale[1])
+            valid_scale_flag = (areas >= scale[0]) * (areas < scale[1])
 
             # shape: (grid_number^2, 2 (4))
             grids = get_grids(img_meta['pad_shape'][:2], grid_number, center=False)
@@ -120,8 +118,11 @@ class SOLOGrid(object):
 
             cate_labels.append(grid2label.reshape(grid_number, grid_number))
             ins_masks.append(ins_mask)
-            num_pos += len((grid2label).nonzero())
+            num_pos += len(pos_inds)
             num_neg += len(neg_inds)
+
+        import pdb
+        pdb.set_trace()
 
         return cate_labels, ins_masks, num_pos, num_neg
 

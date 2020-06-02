@@ -1,21 +1,33 @@
 import torch
 import numpy as np
 
+from scipy import ndimage
 
-def get_center_regions(bboxes, inner_thres):
+
+def get_center_regions(masks, bboxes, inner_thres):
+
+    masks = masks.cpu().numpy()
+    mcenters = []
+    for i in range(len(masks)):
+        mcenters.append(ndimage.measurements.center_of_mass(masks[i]))
+
+    mcenters = bboxes.new_tensor(mcenters)
+
+    cx = mcenters[:, 1]
+    cy = mcenters[:, 0]
 
     x1 = bboxes[:, 0]
     y1 = bboxes[:, 1]
     x2 = bboxes[:, 2]
     y2 = bboxes[:, 3]
-    w = inner_thres * (x2 - x1 + 1)
-    h = inner_thres * (y2 - y1 + 1)
-    x, y = (x1 + x2) / 2, (y1 + y2) / 2
+    # TODO + 1
+    w = inner_thres * (x2 - x1)
+    h = inner_thres * (y2 - y1)
 
-    x1 = x - w / 2
-    x2 = x + w / 2
-    y1 = y - h / 2
-    y2 = y + h / 2
+    x1 = cx - w / 2
+    x2 = cx + w / 2
+    y1 = cy - h / 2
+    y2 = cy + h / 2
 
     center_regions = torch.stack([x1, y1, x2, y2], dim=-1)
 

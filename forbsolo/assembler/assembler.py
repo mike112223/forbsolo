@@ -7,7 +7,6 @@ import numpy as np
 from forbsolo.utils import Config
 from forbsolo.data import build_dataset, build_transform, build_dataloader
 from forbsolo.model import build_model
-from forbsolo.criterion import build_criterion
 from forbsolo.optimizer import build_optimizer, build_lr_scheduler
 from forbsolo.runner import build_runner
 
@@ -66,8 +65,7 @@ def assemble(cfg_fp, checkpoint='', test_mode=False):
     model = build_model(cfg['model'])
     if torch.cuda.is_available():
         gpu = True
-        if torch.cuda.device_count() > 1:
-            model = SOLODataParallel(model, device_ids=range(torch.cuda.device_count()))
+        model = SOLODataParallel(model, device_ids=range(torch.cuda.device_count()))
         model.cuda()
     else:
         gpu = False

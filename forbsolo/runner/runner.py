@@ -53,7 +53,7 @@ class Runner(object):
                 if self.trainval_ratio > 0 \
                         and (epoch + 1) % self.trainval_ratio == 0 \
                         and self.loader.get('val'):
-                    self.validate_epoch()
+                    self.val_epoch()
 
     def train_epoch(self):
         print('Epoch %d, Start training' % self.epoch)
@@ -73,6 +73,7 @@ class Runner(object):
 
         seg_losses, cls_losses = self.model(**batch)
         losses = sum(seg_losses + cls_losses)
+
         losses.backward()
 
         self.optim.step()

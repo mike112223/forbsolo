@@ -120,14 +120,17 @@ class Bottleneck(nn.Module):
 
 class ResNetCls(nn.Module):
 
-    def __init__(self, block, layers, num_classes=1000, zero_init_residual=False,
-                 groups=1, width_per_group=64, replace_stride_with_dilation=None,
+    def __init__(self, block, layers, num_classes=1000,
+                 zero_init_residual=False, groups=1,
+                 width_per_group=64, frozen_stages=-1,
+                 replace_stride_with_dilation=None,
                  norm_layer=None, out_indices=(0, 1, 2, 3)):
         super(ResNetCls, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
         self.out_indices = out_indices
+        self.frozen_stages = frozen_stages
 
         self.inplanes = 64
         self.dilation = 1
@@ -161,6 +164,8 @@ class ResNetCls(nn.Module):
             self.res_layers.append(layer_name)
 
         self.zero_init_residual = zero_init_residual
+
+        self._freeze_stages()
 
     def init_weights(self):
         for m in self.modules():
@@ -203,6 +208,19 @@ class ResNetCls(nn.Module):
                                 norm_layer=norm_layer))
 
         return nn.Sequential(*layers)
+
+    def _freeze_stages(self):
+        if self.frozen_stages >= 0:
+            self.bn1.eval()
+            for m in [self.conv1, self.bn1]:
+                for param in m.parameters():
+                    param.requires_grad = False
+
+        for i in range(1, self.frozen_stages + 1):
+            m = getattr(self, 'layer{}'.format(i))
+            m.eval()
+            for param in m.parameters():
+                param.requires_grad = False
 
     def forward(self, x):
         # See note [TorchScript super()]
@@ -273,7 +291,7 @@ class ResNet(ResNetCls):
     Args:
         pretrain(bool)
     """
-    def __init__(self, arch, replace_stride_with_dilation=None, pretrained=True):
+    def __init__(self, arch, pretrained=True, **kwargs):
         cfg = MODEL_CFGS[arch]
         groups = cfg.get('groups', 1)
         width_per_group = cfg.get('width_per_group', 64)
@@ -282,7 +300,7 @@ class ResNet(ResNetCls):
             cfg['layer'],
             groups=groups,
             width_per_group=width_per_group,
-            replace_stride_with_dilation=replace_stride_with_dilation,
+            **kwargs
         )
 
         if pretrained:

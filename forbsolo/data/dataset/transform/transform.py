@@ -52,7 +52,7 @@ def to_tensor(data):
 
 @TRANSFORMS.register_module
 class Resize(object):
-    def __init__(self, img_scale, keep_ratio, mode='nearest'):
+    def __init__(self, img_scale, keep_ratio, mode='bilinear'):
         self.img_scale = img_scale
         if not isinstance(self.img_scale, tuple):
             raise TypeError('img scale must be tuple!')
@@ -62,7 +62,7 @@ class Resize(object):
         self.keep_ratio = keep_ratio
         self.mode = CV2_MODE[mode]
 
-    def __resize_img(self, img, return_scale=False):
+    def __resize_img(self, img, interpolation, return_scale=False):
         h, w = img.shape[:2]
         if self.keep_ratio:
 
@@ -76,10 +76,10 @@ class Resize(object):
                 int(w * float(scale_factor) + 0.5),
                 int(h * float(scale_factor) + 0.5)
             )
-            resized_img = cv2.resize(img, new_size, interpolation=self.mode)
+            resized_img = cv2.resize(img, new_size, interpolation=interpolation)
         else:
             resized_img = cv2.resize(
-                img, self.img_scale, interpolation=self.mode
+                img, self.img_scale, interpolation=interpolation
             )
             w_scale = self.img_scale[0] / w
             h_scale = self.img_scale[1] / h
@@ -94,7 +94,7 @@ class Resize(object):
 
     def _resize_img(self, results):
         img = results['img']
-        resized_img, scale_factor = self.__resize_img(img, True)
+        resized_img, scale_factor = self.__resize_img(img, self.mode, True)
 
         results['img'] = resized_img
         results['scale'] = self.img_scale
@@ -115,7 +115,7 @@ class Resize(object):
         for key in results.get('mask_fields', []):
             if results[key] is None:
                 continue
-            masks = [self.__resize_img(mask) for mask in results[key]]
+            masks = [self.__resize_img(mask, CV2_MODE['nearest']) for mask in results[key]]
             results[key] = np.stack(masks)
 
 

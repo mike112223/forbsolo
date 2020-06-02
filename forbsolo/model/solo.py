@@ -29,7 +29,7 @@ class SOLO(nn.Module):
         self.init_weights()
 
     def init_weights(self):
-        self.backbone.init_weights()
+        # self.backbone.init_weights()
         self.neck.init_weights()
         self.head.init_weights()
 
